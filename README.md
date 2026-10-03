@@ -1,36 +1,38 @@
-# Agent Docker Images
+# Agent Container Images
 
-Docker images and tooling to run coding AI agents in isolated containers.
+Container images and tooling for running AI agents in isolated containers.
 
 ## Overview
 
-- **Base Image** (`base.dockerfile`): Debian-based image with Node.js, Python (`uv`),
-  Bun, and system CLI utilities (`git`, `ripgrep`, `curl`, `make`).
+- **Base Image** (`agent:base`): Node.js 26 on Debian Trixie slim, `uv`, and
+  CLI utilities including `git`, `ripgrep`, `curl`, `fd-find`, and `make`.
 
-- **Claude Agent** (`claude-agent.dockerfile`): Extends base image with Claude Code,
-  installed via pinned native installer script.
-- **Codex Agent** (`codex-agent.dockerfile`): Extends base image with OpenAI Codex
-  CLI, installed via npm.
-- **Hermes Agent** (`hermes-agent.dockerfile`): Extends base image with Hermes AI
-  agent, installed via pinned installer script.
-- **Kilo Agent** (`kilo-agent.dockerfile`): Extends base image with Kilo AI CLI,
-  installed via pinned installer script.
-- **OpenClaw Agent** (`openclaw-agent.dockerfile`): Extends base image with
-  OpenClaw agent, installed via pinned installer script.
-- **Pi Agent** (`pi-agent.dockerfile`): Extends base image with `@earendil-works/pi-coding-agent`.
+- **Claude Agent** (`agent:claude`): Extends base image with Claude Code,
+  installed by an installer script.
+- **Codex Agent** (`agent:codex`): Extends base image with OpenAI Codex
+  CLI, installed with npm.
+- **Hermes Agent** (`agent:hermes`): Extends base image with Hermes AI
+  agent, installed by an installer script.
+- **Kilo Agent** (`agent:kilo`): Extends base image with Kilo AI CLI,
+  installed by an installer script.
+- **OpenClaw Agent** (`agent:openclaw`): Extends base image with
+  OpenClaw agent, installed by an installer script.
+- **Pi Agent** (`agent:pi`): Extends base image with Pi and the `skills` npm
+  package.
 
 ## Repository Layout
 
-- `agent.sh`: Unified runner script to run agents and query support.
-- `fetch-installer.sh`: Fetches upstream installer scripts, lints with `shellcheck`,
-  and saves them under `installers/`.
-- `installers/`: Committed installer scripts used during reproducible container
-  builds.
-- `Makefile`: Build automation for base and agent images.
+- `scripts/run_agent.sh`: runs an agent in Docker or lists supported agents.
+- `scripts/fetch-asset.sh`: fetches upstream installer scripts into `assets/`.
+- `assets/`: install and configuration script snapshots for Claude, Hermes,
+  Kilo, OpenClaw, Pi, and uv.
+- `base/`, `claude/`, `codex/`, `hermes/`, `kilo/`, `openclaw/`, `pi/`:
+  image-specific Dockerfiles and Makefiles.
+- `Makefile`: build, lint, format, and test targets.
 
 ## Building Images
 
-Build all images:
+Build all images (fetches missing assets first):
 
 ```sh
 make build
@@ -40,12 +42,12 @@ Build a specific image:
 
 ```sh
 make build-base
-make build-claude-agent
-make build-codex-agent
-make build-hermes-agent
-make build-kilo-agent
-make build-openclaw-agent
-make build-pi-agent
+make build-claude
+make build-codex
+make build-hermes
+make build-kilo
+make build-openclaw
+make build-pi
 ```
 
 Specify a custom version tag (defaults to `latest`):
@@ -56,52 +58,79 @@ make build VERSION=0.1.0
 
 ## Running Agents
 
-Run the unified `agent.sh` runner from any directory within your home tree:
+Run the agent runner from a directory you want to mount as the workspace. Docker
+and an interactive terminal are required.
 
 ```sh
 # Run Claude Code agent
-./agent.sh claude
+./scripts/run_agent.sh claude
 
 # Run OpenAI Codex agent
-./agent.sh codex
+./scripts/run_agent.sh codex
 
 # Run Hermes agent
-./agent.sh hermes
+./scripts/run_agent.sh hermes
 
 # Run Kilo agent
-./agent.sh kilo
+./scripts/run_agent.sh kilo
 
 # Run OpenClaw agent
-./agent.sh openclaw
+./scripts/run_agent.sh openclaw
 
 # Run Pi agent
-./agent.sh pi
+./scripts/run_agent.sh pi
 
 # Pass arguments directly to the agent
-./agent.sh kilo --help
+./scripts/run_agent.sh kilo --help
 ```
+
+The runner mounts the current directory into the container, uses a persistent
+Docker volume for agent settings, and forwards supported API-key environment
+variables when set. Set `IMAGE` to override the default agent image.
 
 List supported agents:
 
 ```sh
-./agent.sh --list
+./scripts/run_agent.sh --list
 ```
 
 List only supported agents with available local Docker images:
 
 ```sh
-./agent.sh --list-available
+./scripts/run_agent.sh --list-available
 ```
 
-## Updating Installers
+## Assets
 
-Fetch upstream installation scripts, run shellcheck, and store them locally:
+Upstream installer scripts are fetched and stored in `assets/`. Existing files
+are skipped unless `--force` is supplied. These are snapshots of upstream
+scripts; the fetch URLs do not pin a release version.
+
+> [!CAUTION]
+> **Security warning:** Review third-party scripts carefully before trusting or
+> running them. Fetching and linting do not guarantee that a script is safe.
+
+> [!NOTE]
+> The scripts are fetched and stored in `assets/`. But that does not guarantee
+> full reproducibility of the agent installation, as some scripts dynamically
+> determine the version to install at runtime. Please study each script to
+> understand how it works and what it installs.
+
+To refresh the assets for a all software component, use:
 
 ```sh
-make fetch-installers
-# or
-./fetch-installer.sh claude
-./fetch-installer.sh hermes
-./fetch-installer.sh kilo
-./fetch-installer.sh openclaw
+make fetch-scripts
 ```
+
+This runs `scripts/fetch-asset.sh`. It attempts to run `shellcheck` when
+available, but continues if shellcheck is unavailable or reports issues. To
+force a refresh of a specific asset, pass its component name:
+
+```sh
+# Refresh the OpenClaw assets:
+./scripts/fetch-asset.sh --force openclaw
+
+# Refresh all available assets:
+./scripts/fetch-asset.sh --force
+```
+  

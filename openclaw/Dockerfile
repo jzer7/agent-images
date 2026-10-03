@@ -4,10 +4,9 @@ FROM ${BASE_IMAGE}
 ENV PATH="/root/.local/bin:${PATH}"
 
 # OpenClaw AI agent installed from offline/pinned repository installer script
-COPY installers/openclaw-install.sh /tmp/openclaw-install.sh
+COPY --from=assets --chmod=+x openclaw-install.sh /tmp/openclaw-install.sh
 
 RUN <<EOT
-    chmod +x /tmp/openclaw-install.sh
     /tmp/openclaw-install.sh --no-onboard --no-prompt
     if [ -f /root/.local/bin/openclaw ] && [ ! -f /usr/local/bin/openclaw ]; then
         ln -s /root/.local/bin/openclaw /usr/local/bin/openclaw
