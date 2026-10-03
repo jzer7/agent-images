@@ -25,6 +25,8 @@ declare -A INSTALL_URLS=(
 declare -A CONFIG_URLS=(
 )
 
+FORCE=0
+
 # ----------------------------------------------------------
 # helpers
 # ----------------------------------------------------------
@@ -47,6 +49,20 @@ warning() {
     shift
     # shellcheck disable=SC2059
     printf "\033[33mWARNING: ${format}\033[0m" "$@" >&2
+}
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [OPTIONS] [COMPONENT...]
+
+Fetch install and configuration assets for components.
+
+Options:
+  --force        Overwrite existing asset files
+  -h, --help     Show this help message and exit
+
+If no COMPONENT is specified, assets for all components will be fetched.
+EOF
 }
 
 # ----------------------------------------------------------
@@ -77,6 +93,12 @@ fetch_asset() {
 
     # 2. URL is valid
     local target_file="${ASSETS_DIR}/${component}-${asset_type}.sh"
+
+    if [[ -f "${target_file}" && "${FORCE}" -eq 0 ]]; then
+        warning 'Asset already exists at "%s", skipping (use --force to overwrite)\n' "${target_file}"
+        return 0
+    fi
+
     local temp_file
     temp_file=$(mktemp "${ASSETS_DIR}/${component}-${asset_type}.sh.tmp.XXXXXX")
 
@@ -133,16 +155,47 @@ unique_elements() {
 # ----------------------------------------------------------
 # Main
 # ----------------------------------------------------------
-if [[ $# -eq 0 ]]; then
+COMPONENTS=()
 
-    # Do all components if no arguments are provided
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --force)
+            FORCE=1
+            shift
+            ;;
+        --)
+            shift
+            while [[ $# -gt 0 ]]; do
+                COMPONENTS+=("$1")
+                shift
+            done
+            break
+            ;;
+        -*)
+            error 'unknown option "%s"\n' "$1"
+            exit 1
+            ;;
+        *)
+            COMPONENTS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [[ ${#COMPONENTS[@]} -eq 0 ]]; then
+
+    # Do all components if no component arguments are provided
     readarray -t ALL_COMPONENTS < <(unique_elements "${!INSTALL_URLS[@]}" "${!CONFIG_URLS[@]}")
 
     for component in "${ALL_COMPONENTS[@]}"; do
         fetch_all_assets "${component}" || error 'no assets were found for component "%s"\n' "${component}"
     done
 else
-    for component in "$@"; do
+    for component in "${COMPONENTS[@]}"; do
         fetch_all_assets "${component}" || error 'no assets were found for component "%s"\n' "${component}"
     done
 fi
