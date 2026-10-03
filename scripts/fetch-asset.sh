@@ -2,26 +2,52 @@
 
 set -euo pipefail
 
+# Absolute path
 SCRIPT_DIR="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 # ----------------------------------------------------------
 # Assets
 # ----------------------------------------------------------
-ASSETS_DIR="${SCRIPT_DIR}/assets"
+ASSETS_DIR="$(realpath "${SCRIPT_DIR}/../assets")"
 mkdir -p "${ASSETS_DIR}"
 
-# Installers
-declare -A INSTALLER_URLS=(
+# URL to installation scripts
+declare -A INSTALL_URLS=(
     ["claude"]="https://claude.ai/install.sh"
     ["hermes"]="https://hermes-agent.nousresearch.com/install.sh"
     ["kilo"]="https://kilo.ai/cli/install"
     ["openclaw"]="https://openclaw.ai/install.sh"
     ["pi"]="https://pi.dev/install.sh"
+    ["uv"]="https://astral.sh/uv/install.sh"
 )
 
-# Configuration
-declare -A CONFIGURATION_URLS=(
+# URL to configuration scripts
+declare -A CONFIG_URLS=(
 )
+
+# ----------------------------------------------------------
+# helpers
+# ----------------------------------------------------------
+info() {
+    local format="$1"
+    shift
+    # shellcheck disable=SC2059
+    printf "\033[32mINFO: ${format}\033[0m" "$@"
+}
+
+error() {
+    local format="$1"
+    shift
+    # shellcheck disable=SC2059
+    printf "\033[31mERROR: ${format}\033[0m" "$@" >&2
+}
+
+warning() {
+    local format="$1"
+    shift
+    # shellcheck disable=SC2059
+    printf "\033[33mWARNING: ${format}\033[0m" "$@" >&2
+}
 
 # ----------------------------------------------------------
 #
@@ -29,47 +55,94 @@ declare -A CONFIGURATION_URLS=(
 fetch_asset() {
     local asset_type="$1"
     local component="$2"
-    local url="${INSTALLER_URLS[$component]:-}"
+    local url=""
+
+    # 1. Defensive checks
+    case "${asset_type}" in
+        install|installation)
+            url="${INSTALL_URLS[$component]:-}"
+            ;;
+        config|configuration|setup)
+            url="${CONFIG_URLS[$component]:-}"
+            ;;
+        *)
+            error 'unknown asset type "%s"\n' "${asset_type}"
+            exit 1
+            ;;
+    esac
 
     if [[ -z "${url}" ]]; then
-        printf 'error: unknown component "%s"\n' "${component}" >&2
-        exit 1
+        return 1
     fi
 
+    # 2. URL is valid
     local target_file="${ASSETS_DIR}/${component}-${asset_type}.sh"
     local temp_file
     temp_file=$(mktemp "${ASSETS_DIR}/${component}-${asset_type}.sh.tmp.XXXXXX")
 
-    printf 'Fetching %s script for %s from %s...\n' "${asset_type}" "${component}" "${url}"
+    info 'Fetching %s script for %s from %s...\n' "${asset_type}" "${component}" "${url}"
     curl -fsSL "${url}" -o "${temp_file}"
 
     if [[ ! -s "${temp_file}" ]]; then
-        printf 'error: fetched %s script for %s is empty\n' "${asset_type}" "${component}" >&2
+        error 'fetched %s script for %s is empty\n' "${asset_type}" "${component}"
         rm -f "${temp_file}"
-        exit 1
+        return 1
     fi
 
     if command -v shellcheck >/dev/null 2>&1; then
-        printf 'Running shellcheck on %s script for %s...\n' "${asset_type}" "${component}"
-        shellcheck "${temp_file}" || printf 'warning: shellcheck reported issues for %s script for %s\n' "${asset_type}" "${component}" >&2
+        info 'Running shellcheck on %s script for %s...\n' "${asset_type}" "${component}"
+        shellcheck "${temp_file}" >/dev/null 2>&1 || warning 'shellcheck reported issues for %s script for %s\n' "${asset_type}" "${component}"
     else
-        printf 'warning: shellcheck not found in PATH, skipping analysis\n' >&2
+        warning 'shellcheck not found in PATH, skipping analysis\n'
     fi
 
     chmod 755 "${temp_file}"
     mv -f "${temp_file}" "${target_file}"
-    printf 'Saved %s script to %s\n' "${asset_type}" "${target_file}"
+    info 'Saved %s script to %s\n' "${asset_type}" "${target_file}"
 }
+
+fetch_all_assets() {
+    local component="$1"
+    local failed=0
+
+    fetch_asset "install" "${component}" || {
+        warning 'no %s asset found for "%s"\n' "install" "${component}"
+        ((failed++)) || true
+    }
+    fetch_asset "config" "${component}" || {
+        warning 'no %s asset found for "%s"\n' "config" "${component}"
+        ((failed++)) || true
+    }
+
+    # Returns 1 if all previous `fetch_asset` calls failed
+    [[ "${failed}" -lt 2 ]]
+}
+
+unique_elements() {
+    local -A seen=()
+    local item
+    for item in "$@"; do
+        if [[ -z "${seen[$item]:-}" ]]; then
+            seen["$item"]=1
+            printf '%s\n' "$item"
+        fi
+    done
+}
+
 
 # ----------------------------------------------------------
 # Main
 # ----------------------------------------------------------
 if [[ $# -eq 0 ]]; then
-    for component in "${!INSTALLER_URLS[@]}"; do
-        fetch_asset "install" "${component}"
+
+    # Do all components if no arguments are provided
+    readarray -t ALL_COMPONENTS < <(unique_elements "${!INSTALL_URLS[@]}" "${!CONFIG_URLS[@]}")
+
+    for component in "${ALL_COMPONENTS[@]}"; do
+        fetch_all_assets "${component}" || error 'no assets were found for component "%s"\n' "${component}"
     done
 else
     for component in "$@"; do
-        fetch_asset "install" "${component}"
+        fetch_all_assets "${component}" || error 'no assets were found for component "%s"\n' "${component}"
     done
 fi
