@@ -4,6 +4,7 @@ FROM ${BASE_IMAGE}
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Kilo AI agent installed from offline/pinned repository installer script
+# hadolint ignore=DL3022
 COPY --from=assets --chmod=+x kilo-install.sh /tmp/kilo-install.sh
 
 RUN <<EOT

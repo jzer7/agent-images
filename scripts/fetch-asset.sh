@@ -75,16 +75,16 @@ fetch_asset() {
 
     # 1. Defensive checks
     case "${asset_type}" in
-        install|installation)
-            url="${INSTALL_URLS[$component]:-}"
-            ;;
-        config|configuration|setup)
-            url="${CONFIG_URLS[$component]:-}"
-            ;;
-        *)
-            error 'unknown asset type "%s"\n' "${asset_type}"
-            exit 1
-            ;;
+    install | installation)
+        url="${INSTALL_URLS[$component]:-}"
+        ;;
+    config | configuration | setup)
+        url="${CONFIG_URLS[$component]:-}"
+        ;;
+    *)
+        error 'unknown asset type "%s"\n' "${asset_type}"
+        exit 1
+        ;;
     esac
 
     if [[ -z "${url}" ]]; then
@@ -151,7 +151,6 @@ unique_elements() {
     done
 }
 
-
 # ----------------------------------------------------------
 # Main
 # ----------------------------------------------------------
@@ -159,30 +158,30 @@ COMPONENTS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -h|--help)
-            usage
-            exit 0
-            ;;
-        --force)
-            FORCE=1
-            shift
-            ;;
-        --)
-            shift
-            while [[ $# -gt 0 ]]; do
-                COMPONENTS+=("$1")
-                shift
-            done
-            break
-            ;;
-        -*)
-            error 'unknown option "%s"\n' "$1"
-            exit 1
-            ;;
-        *)
+    -h | --help)
+        usage
+        exit 0
+        ;;
+    --force)
+        FORCE=1
+        shift
+        ;;
+    --)
+        shift
+        while [[ $# -gt 0 ]]; do
             COMPONENTS+=("$1")
             shift
-            ;;
+        done
+        break
+        ;;
+    -*)
+        error 'unknown option "%s"\n' "$1"
+        exit 1
+        ;;
+    *)
+        COMPONENTS+=("$1")
+        shift
+        ;;
     esac
 done
 

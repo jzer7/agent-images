@@ -1,6 +1,6 @@
 VERSION    ?= latest
-ASSET_DIR   := ../assets
-CUR_DIR     := $(notdir $(CURDIR))
+ASSET_DIR  := ../assets
+CUR_DIR    := $(notdir $(CURDIR))
 BASE_IMAGE ?= jzer7/agent:base-$(VERSION)
 IMAGE_TAG  ?= $(CUR_DIR)-$(VERSION)
 IMAGE_NAME := jzer7/agent:$(IMAGE_TAG)

@@ -24,6 +24,7 @@ RUN <<EOT
 EOT
 
 # uv (python) installed from offline/pinned repository installer script
+# hadolint ignore=DL3022
 COPY --from=assets --chmod=+x /uv-install.sh /tmp/uv-install.sh
 
 RUN <<EOT
@@ -31,4 +32,5 @@ RUN <<EOT
     rm -f /tmp/uv-install.sh
     ln -s /root/.local/bin/uv /usr/local/bin/uv
     ln -s /root/.local/bin/uvx /usr/local/bin/uvx
+    uv python install 3.14 --default
 EOT

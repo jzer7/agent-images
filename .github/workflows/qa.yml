@@ -1,0 +1,28 @@
+name: QA
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    name: Run QA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # https://github.com/actions/checkout/releases/tag/v7.0.1
+
+      - name: Install QA tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck shfmt
+
+      - name: Run QA checks
+        run: make qa
+
+      - name: Verify formatting made no changes
+        run: git diff --exit-code

@@ -4,6 +4,7 @@ FROM ${BASE_IMAGE}
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Claude Code AI agent installed from offline/pinned repository installer script
+# hadolint ignore=DL3022
 COPY --from=assets --chmod=+x /claude-install.sh /tmp/claude-install.sh
 
 RUN <<EOT

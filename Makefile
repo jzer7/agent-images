@@ -1,11 +1,26 @@
 VERSION       ?= latest
 
-FETCH_SCRIPT  := scripts/fetch-asset.sh
-SHELL_SCRIPTS := $(wildcard scripts/*.sh)
+FETCH_SCRIPT        := scripts/fetch-asset.sh
+SHELL_SCRIPTS       := $(wildcard scripts/*.sh)
 
-DOCKERFILES              := $(wildcard */Dockerfile)
-AGENTS                   := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(DOCKERFILES)))
-AGENT_BUILD_TARGETS      := $(addprefix build-,$(AGENTS))
+DOCKERFILES         := $(wildcard */Dockerfile)
+AGENTS              := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(DOCKERFILES)))
+AGENT_BUILD_TARGETS := $(addprefix build-,$(AGENTS))
+
+HADOLINT_ARGS       := --ignore DL3008 --ignore DL3016
+
+# ----------------------------------------------------------
+# Linters
+# ----------------------------------------------------------
+# Pick the first one available
+ifneq (,$(shell which hadolint))
+  HADOLINT_CMD := hadolint
+else ifneq (,$(shell which docker))
+  HADOLINT_IMAGE  := hadolint/hadolint:v2.15.1
+  HADOLINT_CMD := docker run --rm -i $(HADOLINT_IMAGE) hadolint
+else
+  $(error "No suitable Docker linter found. Please install 'hadolint' or ensure 'docker' is globally available.")
+endif
 
 # ----------------------------------------------------------
 # Help output
@@ -54,13 +69,16 @@ fetch-scripts: ## 📥 Fetch upstream agent scripts
 # ----------------------------------------------------------
 .PHONY: sh-lint
 sh-lint: ## 🔍 Lint shell scripts with shellcheck
-	shellcheck $(SHELL_SCRIPTS)
+	@for sf in $(SHELL_SCRIPTS); do \
+		echo "==> Linting $$sf"; \
+		shellcheck "$$sf"; \
+	done
 
 .PHONY: docker-lint
 docker-lint: ## 🔍 Lint Dockerfiles with hadolint
 	@for df in $(DOCKERFILES); do \
 		echo "==> Linting $$df"; \
-		docker run --rm -i hadolint/hadolint hadolint --ignore DL3008 --ignore DL3016 - < "$$df" || exit 1; \
+		$(HADOLINT_CMD) $(HADOLINT_ARGS) - < "$$df" || exit 1; \
 	done
 
 # ----------------------------------------------------------

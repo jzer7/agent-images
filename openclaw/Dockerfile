@@ -4,6 +4,7 @@ FROM ${BASE_IMAGE}
 ENV PATH="/root/.local/bin:${PATH}"
 
 # OpenClaw AI agent installed from offline/pinned repository installer script
+# hadolint ignore=DL3022
 COPY --from=assets --chmod=+x openclaw-install.sh /tmp/openclaw-install.sh
 
 RUN <<EOT
