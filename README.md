@@ -1,4 +1,4 @@
-# Agent Container Images
+# Agent container images
 
 [![Dependabot Updates](https://github.com/jzer7/agent-images/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/dependabot/dependabot-updates)
 [![QA](https://github.com/jzer7/agent-images/actions/workflows/qa.yml/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/qa.yml)
@@ -23,7 +23,7 @@ Container images and tooling for running AI agents in isolated containers.
 - **Pi Agent** (`agent:pi`): Extends base image with Pi and the `skills` npm
   package.
 
-## Repository Layout
+## Repository layout
 
 - `scripts/run_agent.sh`: runs an agent in Docker or lists supported agents.
 - `scripts/fetch-asset.sh`: fetches upstream installer scripts into `assets/`.
@@ -33,7 +33,7 @@ Container images and tooling for running AI agents in isolated containers.
   image-specific Dockerfiles and Makefiles.
 - `Makefile`: build, lint, format, and test targets.
 
-## Building Images
+## Building images
 
 Build all images (fetches missing assets first):
 
@@ -59,7 +59,7 @@ Specify a custom version tag (defaults to `latest`):
 make build VERSION=0.1.0
 ```
 
-## Running Agents
+## Running agents
 
 Run the agent runner from a directory you want to mount as the workspace. Docker
 and an interactive terminal are required.
@@ -102,6 +102,51 @@ List only supported agents with available local Docker images:
 ```sh
 ./scripts/run_agent.sh --list-available
 ```
+
+Examples:
+
+```sh
+# run the Claude agent
+./scripts/run_agent.sh claude
+
+# get help about the Kilo agent
+./scripts/run_agent.sh kilo --help
+
+# list Openclaw plugins
+./scripts/run_agent.sh openclaw plugins list
+
+# continue a previous session with the Pi agent
+./scripts/run_agent.sh pi --continue "OAuth token expired"
+```
+
+### Note on LLM providers
+
+There are multiple ways to configure LLM providers for the agent running in a
+container.
+
+- TUI asks on first run and stores the configuration in a persistent volume.
+  Some come preconfigured with a safe default (e.g., Kilo).
+- Slash command inside the TUI (e.g., `/provider`)
+- Environment variables (e.g., `export OPENAI_API_KEY=YOUR_OPENAI_API_KEY`),
+  which are forwarded to the container when set.
+- Command line subcommand or argument (e.g., `setup`, or `--api-key YOUR_OPENAI_API_KEY`).
+- Manually updating the configuration file in the persistent volume (e.g.,
+  `~/.codex/config.toml`). This is advanced, so not covered in this document.
+
+The options might change, so use the `--help` option on the agent runner to see
+the available options for each agent.
+
+| Agent    | First run          | Env variable | Slash command | CLI subcommand | ⚠️ CLI argument |
+| -------- | ------------------ | ------------ | ------------- | -------------- | --------------- |
+| claude   | ✅                 | ✅           |               | `setup-token`  |                 |
+| codex    | ✅                 |              |               | `login`        |                 |
+| hermes   | ✅                 | ✅           |               | `setup`        |                 |
+| kilo     | ✅ (preconfigured) | ✅           | `/connect`    | `config`       |                 |
+| openclaw | ✅                 |              |               | `setup`        |                 |
+| pi       |                    | ✅           | `/login`      |                | `--api-key`     |
+
+> [!CAUTION]
+> Passing API keys or other secrets in the CLI is not secure.
 
 ## Assets
 
