@@ -6,13 +6,14 @@ SUPPORTED_AGENTS=(claude codex hermes kilo openclaw pi)
 
 usage() {
     cat <<'EOF'
-Usage: ./agent.sh <agent-name> [agent-arguments...]
+Usage: ./agent.sh [--vol VOLUME_NAME] <agent-name> [agent-arguments...]
        ./agent.sh --list
        ./agent.sh --list-available
 
 Options:
-  --list            List all supported agents
-  --list-available  List supported agents with available Docker images
+    --list              List all supported agents
+    --list-available    List supported agents with available Docker images
+    --vol VOLUME_NAME   Docker volume to mount as /root (default: agent-$USER)
 
 Available agents:
   claude    Run Claude Code agent (image: jzer7/agent:claude-latest)
@@ -27,6 +28,40 @@ Environment variables:
 EOF
 }
 
+# ----------------------------------------------------------
+# helpers
+# ----------------------------------------------------------
+info() {
+    local format="$1"
+    shift
+    # shellcheck disable=SC2059
+    printf "\033[32mINFO: ${format}\033[0m" "$@"
+}
+
+error() {
+    local format="$1"
+    shift
+    # shellcheck disable=SC2059
+    printf "\033[31mERROR: ${format}\033[0m" "$@" >&2
+}
+
+warning() {
+    local format="$1"
+    shift
+    # shellcheck disable=SC2059
+    printf "\033[33mWARNING: ${format}\033[0m" "$@" >&2
+}
+
+debug() {
+    local format="$1"
+    shift
+    # shellcheck disable=SC2059
+    printf "\033[33mDEBUG: ${format}\033[0m\n" "$@" >&2
+}
+
+# ----------------------------------------------------------
+#
+# ----------------------------------------------------------
 list_agents() {
     for agent in "${SUPPORTED_AGENTS[@]}"; do
         printf '%s\n' "$agent"
@@ -95,6 +130,24 @@ build_env_flags() {
     done
 }
 
+ensure_volume_exists() {
+    local volume_name="$1"
+    shift
+    local -a dir_names=("$@")
+
+    if ! docker volume inspect "$volume_name" >/dev/null 2>&1; then
+        docker volume create "$volume_name" >/dev/null
+    fi
+
+    if [ "${#dir_names[@]}" -gt 0 ]; then
+        local -a volume_dirs=()
+        for dir_name in "${dir_names[@]}"; do
+            volume_dirs+=("/x/$dir_name")
+        done
+        docker run --rm -v "$volume_name:/x" alpine mkdir -p -- "${volume_dirs[@]}"
+    fi
+}
+
 configure_agent() {
     local agent="$1"
 
@@ -102,7 +155,7 @@ configure_agent() {
     case "$agent" in
     claude)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:claude-latest}"
-        AGENT_VOLUME="claude-agent-home:/root/.claude"
+        AGENT_CONFIG_DIR=".claude"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
             ANTHROPIC_AUTH_TOKEN
@@ -112,14 +165,14 @@ configure_agent() {
         ;;
     codex)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:codex-latest}"
-        AGENT_VOLUME="codex-agent-home:/root/.codex"
+        AGENT_CONFIG_DIR=".codex"
         PASS_ENV_VARS=(
             OPENAI_API_KEY
         )
         ;;
     hermes)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:hermes-latest}"
-        AGENT_VOLUME="hermes-agent-home:/root/.hermes"
+        AGENT_CONFIG_DIR=".hermes"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
             OPENAI_API_KEY
@@ -129,7 +182,7 @@ configure_agent() {
         ;;
     kilo)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:kilo-latest}"
-        AGENT_VOLUME="kilo-agent-home:/root/.kilo"
+        AGENT_CONFIG_DIR=".kilo"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
             OPENAI_API_KEY
@@ -139,7 +192,7 @@ configure_agent() {
         ;;
     openclaw)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:openclaw-latest}"
-        AGENT_VOLUME="openclaw-agent-home:/root/.openclaw"
+        AGENT_CONFIG_DIR=".openclaw"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
             OPENAI_API_KEY
@@ -148,7 +201,7 @@ configure_agent() {
         ;;
     pi)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:pi-latest}"
-        AGENT_VOLUME="pi-agent-home:/root/.pi"
+        AGENT_CONFIG_DIR=".pi"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
             OPENAI_API_KEY
@@ -171,13 +224,20 @@ run_container() {
     shift 4
     local -a env_flags=("${!1}")
     shift 1
+    local -a dirs_to_mount=("${!1}")
+    shift 1
+    local -a volume_mounts=()
+
+    for dir_name in "${dirs_to_mount[@]}"; do
+        volume_mounts+=(--mount "type=volume,src=${volume},dst=/root/${dir_name},volume-subpath=${dir_name}")
+    done
 
     docker run --rm -it \
         --name "${container_name}" \
         "${env_flags[@]}" \
         --add-host=host.docker.internal:host-gateway \
+        "${volume_mounts[@]}" \
         -v "$PWD:/$mount_point" \
-        -v "${volume}" \
         -w "/$mount_point" \
         "${image}" \
         "$@"
@@ -189,7 +249,24 @@ main() {
         exit 0
     fi
 
-    case "$1" in
+    local volume_name="agent-${USER:-$(id -un)}"
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+        --vol)
+            if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+                printf '%s\n' 'error: --vol requires a volume name.' >&2
+                exit 2
+            fi
+            volume_name="$2"
+            shift 2
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+
+    case "${1:-}" in
     --list)
         list_agents
         exit 0
@@ -200,14 +277,47 @@ main() {
         ;;
     esac
 
+    if [ "$#" -eq 0 ]; then
+        usage
+        exit 0
+    fi
+
     local agent="$1"
     shift
+
+    local -a agent_args=()
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+        --vol)
+            if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+                printf '%s\n' 'error: --vol requires a volume name.' >&2
+                exit 2
+            fi
+            volume_name="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            agent_args+=("$@")
+            break
+            ;;
+        *)
+            agent_args+=("$1")
+            shift
+            ;;
+        esac
+    done
 
     check_interactive_tty
     check_working_directory
 
     # shellcheck disable=SC2034
     configure_agent "$agent"
+
+    # The agents are installed in `.npm` of the image, do not shadow them with
+    # a different mount point
+    local -a use_directories=("$AGENT_CONFIG_DIR" ".config")
+    ensure_volume_exists "$volume_name" "${use_directories[@]}"
 
     # shellcheck disable=SC2034
     local -a docker_env_flags
@@ -219,11 +329,12 @@ main() {
 
     run_container \
         "${AGENT_IMAGE}" \
-        "${AGENT_VOLUME}" \
+        "${volume_name}" \
         "${container_name}" \
         "${mount_point}" \
         docker_env_flags[@] \
-        "$@"
+        use_directories[@] \
+        "${agent_args[@]}"
 }
 
 main "$@"
