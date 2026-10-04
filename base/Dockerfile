@@ -4,6 +4,7 @@ FROM ${BASE_IMAGE}
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     UV_SYSTEM_PYTHON=1
+ARG DEBIAN_FRONTEND=noninteractive
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
@@ -16,6 +17,7 @@ RUN <<EOT
         fd-find \
         git \
         make \
+        procps \
         ripgrep \
         unzip \
         wget
