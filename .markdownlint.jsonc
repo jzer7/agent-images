@@ -1,0 +1,44 @@
+// .markdownlint.jsonc
+// https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+// https://github.com/DavidAnson/markdownlint-cli2
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
+  "default": true,
+
+  // MD003: Header style (heading-style)
+  "MD003": {
+    "style": "atx"
+  },
+
+  // MD012: Multiple consecutive blank lines (no-multiple-blanks)
+  "MD012": {
+    "maximum": 2
+  },
+
+  // MD013: Line length (line-length)
+  "MD013": {
+    "line_length": 90,
+    "code_blocks": false,
+    "tables": false
+  },
+
+  // MD022: Headings should be surrounded by blank lines (blank-around-heading)
+  "MD022": false,
+
+  // MD029: Ordered list item prefix (ol-prefix)
+  "MD029": {
+    "style": "one_or_ordered"
+  },
+
+  // MD033: Inline HTML (no-inline-html)
+  "MD033": {
+    "allowed_elements": [
+      "br",
+      "details",
+      "summary"
+    ]
+  },
+  // I am not a fan, sadly LLMs love to do this
+  // MD036: Emphasis used instead of a heading (no-emphasis-as-heading)
+  "MD036": false
+}

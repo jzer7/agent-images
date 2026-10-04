@@ -2,8 +2,9 @@ VERSION       ?= latest
 
 FETCH_SCRIPT        := scripts/fetch-asset.sh
 SHELL_SCRIPTS       := $(wildcard scripts/*.sh)
-
 DOCKERFILES         := $(wildcard */Dockerfile)
+MARKDOWN_FILES      := $(shell git ls-files --cached --others --exclude-standard -- '*.md')
+
 AGENTS              := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(DOCKERFILES)))
 AGENT_BUILD_TARGETS := $(addprefix build-,$(AGENTS))
 
@@ -20,6 +21,17 @@ else ifneq (,$(shell which docker))
   HADOLINT_CMD := docker run --rm -i $(HADOLINT_IMAGE) hadolint
 else
   $(error "No suitable Docker linter found. Please install 'hadolint' or ensure 'docker' is globally available.")
+endif
+
+# Pick the first one available
+ifneq (,$(shell which markdownlint-cli2))
+  MARKDOWNLINT := markdownlint-cli2
+else ifneq (,$(shell which bunx))
+  MARKDOWNLINT := bunx markdownlint-cli2@0.22.1
+else ifneq (,$(shell which npx))
+  MARKDOWNLINT := npx markdownlint-cli2@0.22.1
+else
+  $(error "No suitable Markdown linter found. Please install 'markdownlint-cli2' globally or ensure 'bunx' or 'npx' is available.")
 endif
 
 # ----------------------------------------------------------
@@ -40,7 +52,7 @@ help: ## ❓ Display help information for Makefile targets
 .PHONY: all lint format test qa build clean distclean
 all: qa build
 
-lint: sh-lint docker-lint ## 🔍 Lint shell scripts and Dockerfiles
+lint: sh-lint docker-lint md-lint ## 🔍 Lint shell scripts and Dockerfiles
 
 format: sh-format docker-format ## 🎨 Format shell scripts and validate Dockerfiles
 
@@ -80,6 +92,11 @@ docker-lint: ## 🔍 Lint Dockerfiles with hadolint
 		echo "==> Linting $$df"; \
 		$(HADOLINT_CMD) $(HADOLINT_ARGS) - < "$$df" || exit 1; \
 	done
+
+.PHONY: md-lint
+md-lint: ## 🔍 Lint Markdown files with markdownlint-cli2
+	@echo "==> Linting $(MARKDOWN_FILES)"
+	$(MARKDOWNLINT) $(MARKDOWN_FILES)
 
 # ----------------------------------------------------------
 # Format targets
