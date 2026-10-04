@@ -1,5 +1,8 @@
 # Agent Container Images
 
+[![Dependabot Updates](https://github.com/jzer7/agent-images/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/dependabot/dependabot-updates)
+[![QA](https://github.com/jzer7/agent-images/actions/workflows/qa.yml/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/qa.yml)
+
 Container images and tooling for running AI agents in isolated containers.
 
 ## Overview
@@ -102,13 +105,13 @@ List only supported agents with available local Docker images:
 
 ## Assets
 
-Upstream installer scripts are fetched and stored in `assets/`. Existing files
-are skipped unless `--force` is supplied. These are snapshots of upstream
-scripts; the fetch URLs do not pin a release version.
-
 > [!CAUTION]
 > **Security warning:** Review third-party scripts carefully before trusting or
 > running them. Fetching and linting do not guarantee that a script is safe.
+
+Upstream installer scripts are fetched and stored in `assets/`. Existing files
+are skipped unless `--force` is supplied. These are snapshots of upstream
+scripts; the fetch URLs do not pin a release version.
 
 > [!NOTE]
 > The scripts are fetched and stored in `assets/`. But that does not guarantee
@@ -133,4 +136,3 @@ force a refresh of a specific asset, pass its component name:
 # Refresh all available assets:
 ./scripts/fetch-asset.sh --force
 ```
-  
