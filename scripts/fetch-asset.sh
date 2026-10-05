@@ -14,8 +14,10 @@ mkdir -p "${ASSETS_DIR}"
 # URL to installation scripts
 declare -A INSTALL_URLS=(
     ["claude"]="https://claude.ai/install.sh"
+    ["cursor"]="https://cursor.com/install"
     ["hermes"]="https://hermes-agent.nousresearch.com/install.sh"
     ["kilo"]="https://kilo.ai/cli/install"
+    ["omp"]="https://omp.sh/install"
     ["openclaw"]="https://openclaw.ai/install.sh"
     ["pi"]="https://pi.dev/install.sh"
     ["uv"]="https://astral.sh/uv/install.sh"

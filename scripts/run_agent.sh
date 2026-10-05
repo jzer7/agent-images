@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-SUPPORTED_AGENTS=(claude codex hermes kilo openclaw pi)
+SUPPORTED_AGENTS=(claude cline codex command-code hermes kilo omp openclaw pi)
 
 usage() {
     cat <<'EOF'
@@ -16,12 +16,15 @@ Options:
     --vol VOLUME_NAME   Docker volume to mount as /root (default: agent-$USER)
 
 Available agents:
-  claude    Run Claude Code agent (image: jzer7/agent:claude-latest)
-  codex     Run OpenAI Codex agent (image: jzer7/agent:codex-latest)
-  hermes    Run Hermes coding agent (image: jzer7/agent:hermes-latest)
-  kilo      Run Kilo coding agent (image: jzer7/agent:kilo-latest)
-  openclaw  Run OpenClaw personal agent (image: jzer7/agent:openclaw-latest)
-  pi        Run Pi coding agent (image: jzer7/agent:pi-latest)
+  claude        Run Claude Code agent (image: jzer7/agent:claude-latest)
+  cline         Run Cline CLI agent (image: jzer7/agent:cline-latest)
+  codex         Run OpenAI Codex agent (image: jzer7/agent:codex-latest)
+  command-code  Run Command Code agent (image: jzer7/agent:command-code-latest)
+  hermes        Run Hermes coding agent (image: jzer7/agent:hermes-latest)
+  kilo          Run Kilo coding agent (image: jzer7/agent:kilo-latest)
+  omp           Run omp coding agent (image: jzer7/agent:omp-latest)
+  openclaw      Run OpenClaw personal agent (image: jzer7/agent:openclaw-latest)
+  pi            Run Pi coding agent (image: jzer7/agent:pi-latest)
 
 Environment variables:
   IMAGE  Override the default Docker image
@@ -163,11 +166,26 @@ configure_agent() {
             ANTHROPIC_MODEL
         )
         ;;
+    cline)
+        AGENT_IMAGE="${IMAGE:-jzer7/agent:cline-latest}"
+        AGENT_CONFIG_DIR=".cline"
+        PASS_ENV_VARS=(
+            CLINE_DATA_DIR
+            CLINE_COMMAND_PERMISSIONS
+        )
+        ;;
     codex)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:codex-latest}"
         AGENT_CONFIG_DIR=".codex"
         PASS_ENV_VARS=(
             OPENAI_API_KEY
+        )
+        ;;
+    command-code)
+        AGENT_IMAGE="${IMAGE:-jzer7/agent:command-code-latest}"
+        AGENT_CONFIG_DIR=".commandcode"
+        PASS_ENV_VARS=(
+            COMMAND_CODE_API_KEY
         )
         ;;
     hermes)
@@ -188,6 +206,12 @@ configure_agent() {
             OPENAI_API_KEY
             OPENROUTER_API_KEY
             KILO_API_KEY
+        )
+        ;;
+    omp)
+        AGENT_IMAGE="${IMAGE:-jzer7/agent:omp-latest}"
+        AGENT_CONFIG_DIR=".omp"
+        PASS_ENV_VARS=(
         )
         ;;
     openclaw)
