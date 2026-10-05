@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-SUPPORTED_AGENTS=(claude cline codex command-code hermes kilo omp openclaw pi)
+SUPPORTED_AGENTS=(claude cline codex command-code copilot cursor hermes kilo omp openclaw pi)
 
 usage() {
     cat <<'EOF'
@@ -20,7 +20,9 @@ Available agents:
   cline         Run Cline CLI agent (image: jzer7/agent:cline-latest)
   codex         Run OpenAI Codex agent (image: jzer7/agent:codex-latest)
   command-code  Run Command Code agent (image: jzer7/agent:command-code-latest)
-  hermes        Run Hermes coding agent (image: jzer7/agent:hermes-latest)
+  copilot       Run GitHub Copilot agent (image: jzer7/agent:copilot-latest)
+  cursor        Run Cursor coding agent (image: jzer7/agent:cursor-latest)
+  hermes        Run Hermes Agent (image: jzer7/agent:hermes-latest)
   kilo          Run Kilo coding agent (image: jzer7/agent:kilo-latest)
   omp           Run omp coding agent (image: jzer7/agent:omp-latest)
   openclaw      Run OpenClaw personal agent (image: jzer7/agent:openclaw-latest)
@@ -170,8 +172,8 @@ configure_agent() {
         AGENT_IMAGE="${IMAGE:-jzer7/agent:cline-latest}"
         AGENT_CONFIG_DIR=".cline"
         PASS_ENV_VARS=(
-            CLINE_DATA_DIR
             CLINE_COMMAND_PERMISSIONS
+            CLINE_DATA_DIR
         )
         ;;
     codex)
@@ -188,14 +190,31 @@ configure_agent() {
             COMMAND_CODE_API_KEY
         )
         ;;
+    copilot)
+        AGENT_IMAGE="${IMAGE:-jzer7/agent:copilot-latest}"
+        AGENT_CONFIG_DIR=".copilot"
+        PASS_ENV_VARS=(
+            COPILOT_GITHUB_TOKEN
+            GH_TOKEN
+            GITHUB_TOKEN
+            COPILOT_PROVIDER_API_KEY
+            COPILOT_PROVIDER_BASE_URL
+        )
+        ;;
+    cursor)
+        AGENT_IMAGE="${IMAGE:-jzer7/agent:cursor-latest}"
+        AGENT_CONFIG_DIR=".cursor"
+        PASS_ENV_VARS=(
+        )
+        ;;
     hermes)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:hermes-latest}"
         AGENT_CONFIG_DIR=".hermes"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
+            NOUS_API_KEY
             OPENAI_API_KEY
             OPENROUTER_API_KEY
-            NOUS_API_KEY
         )
         ;;
     kilo)
@@ -203,15 +222,20 @@ configure_agent() {
         AGENT_CONFIG_DIR=".kilo"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
+            KILO_API_KEY
             OPENAI_API_KEY
             OPENROUTER_API_KEY
-            KILO_API_KEY
         )
         ;;
     omp)
         AGENT_IMAGE="${IMAGE:-jzer7/agent:omp-latest}"
         AGENT_CONFIG_DIR=".omp"
         PASS_ENV_VARS=(
+            ANTHROPIC_API_KEY
+            ANTHROPIC_AUTH_TOKEN
+            ANTHROPIC_OAUTH_TOKEN
+            COPILOT_GITHUB_TOKEN
+            OPENROUTER_API_KEY
         )
         ;;
     openclaw)
@@ -228,6 +252,8 @@ configure_agent() {
         AGENT_CONFIG_DIR=".pi"
         PASS_ENV_VARS=(
             ANTHROPIC_API_KEY
+            ANTHROPIC_AUTH_TOKEN
+            ANTHROPIC_OAUTH_TOKEN
             OPENAI_API_KEY
             OPENROUTER_API_KEY
         )

@@ -14,6 +14,8 @@ mkdir -p "${ASSETS_DIR}"
 # URL to installation scripts
 declare -A INSTALL_URLS=(
     ["claude"]="https://claude.ai/install.sh"
+    ["codex"]="https://chatgpt.com/codex/install.sh"
+    ["copilot"]="https://gh.io/copilot-install"
     ["cursor"]="https://cursor.com/install"
     ["hermes"]="https://hermes-agent.nousresearch.com/install.sh"
     ["kilo"]="https://kilo.ai/cli/install"
