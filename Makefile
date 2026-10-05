@@ -76,6 +76,10 @@ distclean: clean ## 🧼 Clean all generated files and built Docker images
 fetch-scripts: ## 📥 Fetch upstream agent scripts
 	$(FETCH_SCRIPT)
 
+.PHONY: refresh-scripts
+refresh-scripts: ## 📥 Fetch newer version of upstream agent scripts
+	$(FETCH_SCRIPT) --force
+
 # ----------------------------------------------------------
 # Lint targets
 # ----------------------------------------------------------
