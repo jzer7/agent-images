@@ -1,3 +1,8 @@
+TOP := .
+include $(TOP)/rules/common.mk
+TOOLS_BIN_DIR ?= $(HOME)/.local/bin
+include $(TOP)/rules/tools.mk
+
 IMAGE_VERSION       ?= latest
 
 FETCH_SCRIPT        := scripts/fetch-asset.sh
@@ -9,57 +14,28 @@ AGENTS              := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(
 AGENT_BUILD_TARGETS := $(addprefix build-,$(AGENTS))
 AGENT_TEST_TARGETS  := $(addprefix test-,$(AGENTS))
 
+# ----------------------------------------------------------
+# QA tools used during CI
+# ----------------------------------------------------------
+
 HADOLINT_ARGS       := --ignore DL3008 --ignore DL3016
-
-# ----------------------------------------------------------
-# Linters
-# ----------------------------------------------------------
-# Pick the first one available
-ifneq (,$(shell which hadolint))
-  HADOLINT_CMD := hadolint
-else ifneq (,$(shell which docker))
-  HADOLINT_IMAGE  := hadolint/hadolint:v2.15.1
-  HADOLINT_CMD := docker run --rm -i $(HADOLINT_IMAGE) hadolint
-else
-  $(error "No suitable Docker linter found. Please install 'hadolint' or ensure 'docker' is globally available.")
-endif
-
-# Pick the first one available
-ifneq (,$(shell which markdownlint-cli2))
-  MARKDOWNLINT := markdownlint-cli2
-else ifneq (,$(shell which bunx))
-  MARKDOWNLINT := bunx markdownlint-cli2@0.22.1
-else ifneq (,$(shell which npx))
-  MARKDOWNLINT := npx markdownlint-cli2@0.22.1
-else
-  $(error "No suitable Markdown linter found. Please install 'markdownlint-cli2' globally or ensure 'bunx' or 'npx' is available.")
-endif
-
-# ----------------------------------------------------------
-# Help output
-# ----------------------------------------------------------
-_C_CYAN := \033[36m
-_C_OFF  := \033[0m
-
-.PHONY: help
-help: ## ❓ Display help information for Makefile targets
-	@echo "Available targets:"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9._-]+:.*?## / {printf "  $(_C_CYAN)%-30s$(_C_OFF) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # ----------------------------------------------------------
 # Top level targets
 # ----------------------------------------------------------
 
-.PHONY: all lint format test qa build clean distclean
+.PHONY: all lint format-check format-fix test qa build clean distclean
 all: qa build
 
-lint: sh-lint docker-lint md-lint ## 🔍 Lint shell scripts and Dockerfiles
+lint: sh-lint docker-lint ## 🔍 Lint shell scripts and Dockerfiles
 
-format: sh-format docker-format ## 🎨 Format shell scripts and validate Dockerfiles
+format-check: sh-format-check docker-format-check ## 🎨 Check format of shell scripts and validate Dockerfiles
+
+format-fix: sh-format-fix docker-format-fix ## 🎨 Format shell scripts and validate Dockerfiles
 
 test: test-base $(AGENT_TEST_TARGETS) ## 🧪 Run test suite
 
-qa: lint format test ## ✅ Run all quality assurance checks
+qa: lint format-check test ## ✅ Run all quality assurance checks
 
 build: fetch-scripts build-base $(AGENT_BUILD_TARGETS) ## 📦 Build all Docker images
 
@@ -81,13 +57,24 @@ refresh-scripts: ## 📥 Fetch newer version of upstream agent scripts
 	$(FETCH_SCRIPT) --force
 
 # ----------------------------------------------------------
+# CI tool installation targets
+# ----------------------------------------------------------
+.PHONY: install-tools-images install-tools-docs
+
+install-tools-images: ## 🛠️ Install pinned tools for container images
+	./scripts/install-tools.sh hadolint shellcheck shfmt
+
+install-tools-docs: ## 🛠️ Install pinned tools for documentation
+	./scripts/install-tools.sh markdownlint prettier
+
+# ----------------------------------------------------------
 # Lint targets
 # ----------------------------------------------------------
 .PHONY: sh-lint
 sh-lint: ## 🔍 Lint shell scripts with shellcheck
 	@for sf in $(SHELL_SCRIPTS); do \
 		echo "==> Linting $$sf"; \
-		shellcheck "$$sf"; \
+		$(SHELLCHECK_CMD) "$$sf"; \
 	done
 
 .PHONY: docker-lint
@@ -100,19 +87,36 @@ docker-lint: ## 🔍 Lint Dockerfiles with hadolint
 .PHONY: md-lint
 md-lint: ## 🔍 Lint Markdown files with markdownlint-cli2
 	@echo "==> Linting $(MARKDOWN_FILES)"
-	$(MARKDOWNLINT) $(MARKDOWN_FILES)
+	$(MARKDOWNLINT_CMD) $(MARKDOWN_FILES)
 
 # ----------------------------------------------------------
 # Format targets
 # ----------------------------------------------------------
 
-.PHONY: sh-format
-sh-format: ## 🎨 Format shell scripts with shfmt
-	shfmt -w $(SHELL_SCRIPTS)
+.PHONY: sh-format-check sh-format-fix
+sh-format-check: ## 🎨 Format shell scripts with shfmt
+	@echo "==> Checking format of $(SHELL_SCRIPTS)"
+	$(SHFMT_CMD) -d $(SHELL_SCRIPTS)
 
-.PHONY: docker-format
-docker-format: ## 🎨 Format/check Dockerfiles
+sh-format-fix: ## 🎨 Format shell scripts with shfmt
+	@echo "==> Formatting $(SHELL_SCRIPTS)"
+	$(SHFMT_CMD) -w $(SHELL_SCRIPTS)
+
+.PHONY: docker-format-check docker-format-fix
+docker-format-check: ## 🎨 Format/check Dockerfiles
 	@echo "No dedicated Dockerfile formatter configured; syntax validated by lint."
+
+docker-format-fix: ## 🎨 Format/check Dockerfiles
+	@echo "No dedicated Dockerfile formatter configured; syntax validated by lint."
+
+.PHONY: md-format-check md-format-fix
+md-format-check: ## 🔍 Check format of Markdown files with prettier
+	@echo "==> Checking format of $(MARKDOWN_FILES)"
+	$(PRETTIER_CMD) --check $(MARKDOWN_FILES)
+
+md-format-fix: ## 🔍 Format Markdown files with prettier
+	@echo "==> Formatting $(MARKDOWN_FILES)"
+	$(PRETTIER_CMD) --write $(MARKDOWN_FILES)
 
 # ----------------------------------------------------------
 # Test targets
