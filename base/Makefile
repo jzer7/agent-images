@@ -22,6 +22,7 @@ all: build lint test ## 🚀 Run default pipeline
 .PHONY: build
 build: Dockerfile ## 📦 Build container image
 	docker buildx build \
+		$(BUILD_EXTRA_ARGS) \
 		--load \
 		--build-context assets=$(ASSET_DIR) \
 		--build-arg BASE_IMAGE=$(BASE_IMAGE) \

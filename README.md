@@ -1,7 +1,8 @@
 # Agent container images
 
 [![Dependabot Updates](https://github.com/jzer7/agent-images/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/dependabot/dependabot-updates)
-[![QA](https://github.com/jzer7/agent-images/actions/workflows/qa.yml/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/qa.yml)
+[![CI images](https://github.com/jzer7/agent-images/actions/workflows/ci-images.yml/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/ci-images.yml)
+[![CI docs](https://github.com/jzer7/agent-images/actions/workflows/ci-docs.yml/badge.svg)](https://github.com/jzer7/agent-images/actions/workflows/ci-docs.yml)
 
 Container images and tooling for running AI agents in isolated containers.
 

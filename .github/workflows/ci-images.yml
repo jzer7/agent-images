@@ -1,0 +1,96 @@
+name: CI Images
+
+on:
+  push:
+    paths:
+      - '**/Dockerfile'
+      - '**/Makefile'
+      - 'Makefile'
+      - 'rules/**'
+      - 'scripts/**'
+      - 'assets/**'
+      - '.github/workflows/ci-images.yml'
+  pull_request:
+    paths:
+      - '**/Dockerfile'
+      - '**/Makefile'
+      - 'Makefile'
+      - 'rules/**'
+      - 'scripts/**'
+      - 'assets/**'
+      - '.github/workflows/ci-images.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  discover-targets:
+    name: Discover test targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      targets: ${{ steps.set-targets.outputs.targets }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Discover directories with Dockerfile
+        id: set-targets
+        run: |
+          targets=$(find . -mindepth 2 -maxdepth 2 -name Dockerfile -exec dirname {} + | sed 's|^\./||' | sort | jq -R -s -c 'split("\n")[:-1]')
+          echo "targets=${targets}" >> "$GITHUB_OUTPUT"
+
+  qa:
+    name: Run QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned QA tools
+        run: |
+          set -euo pipefail
+          # shellcheck v0.10.0
+          curl -sSL "https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz" | tar -xJ --strip-components=1 -C /usr/local/bin shellcheck-v0.10.0/shellcheck
+          # shfmt v3.10.0
+          sudo curl -sSL -o /usr/local/bin/shfmt "https://github.com/mvdan/sh/releases/download/v3.10.0/shfmt_v3.10.0_linux_amd64"
+          sudo chmod +x /usr/local/bin/shfmt
+          # hadolint v2.12.0
+          sudo curl -sSL -o /usr/local/bin/hadolint "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64"
+          sudo chmod +x /usr/local/bin/hadolint
+
+      - name: Run linting checks
+        run: make lint
+
+      - name: Verify formatting made no changes
+        run: |
+          make format
+          git diff --exit-code
+
+  test:
+    name: Test (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    needs: [discover-targets, qa]
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.discover-targets.outputs.targets) }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Run tests
+        run: |
+          make test-${{ matrix.target }} \
+            BUILD_EXTRA_ARGS="--cache-from=type=gha,scope=buildx-${{ matrix.target }} --cache-from=type=gha,scope=buildx-base --cache-to=type=gha,scope=buildx-${{ matrix.target }},mode=max"

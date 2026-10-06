@@ -1,0 +1,36 @@
+name: CI Docs
+
+on:
+  push:
+    paths:
+      - '**/*.md'
+      - '.github/workflows/ci-docs.yml'
+  pull_request:
+    paths:
+      - '**/*.md'
+      - '.github/workflows/ci-docs.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    name: Markdown QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 'lts/*'
+
+      - name: Lint markdown files
+        run: make md-lint

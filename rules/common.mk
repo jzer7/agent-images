@@ -1,4 +1,7 @@
 # ----------------------------------------------------------
+BUILD_EXTRA_ARGS ?=
+
+# ----------------------------------------------------------
 define check_for_all_patterns
 printf '%s\n' "$(2)" | awk -v required='$(1)' 'BEGIN { n = split(required, patterns, /[|]/) } { for (i = 1; i <= n; i++) if ($$0 ~ patterns[i]) found[i] = 1 } END { for (i = 1; i <= n; i++) if (!found[i]) exit 1 }'
 endef
