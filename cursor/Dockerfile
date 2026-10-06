@@ -16,4 +16,4 @@ RUN <<EOT
 EOT
 
 WORKDIR /workspace
-ENTRYPOINT ["cursor"]
+ENTRYPOINT ["cursor-agent"]
