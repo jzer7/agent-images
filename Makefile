@@ -1,4 +1,4 @@
-VERSION       ?= latest
+IMAGE_VERSION       ?= latest
 
 FETCH_SCRIPT        := scripts/fetch-asset.sh
 SHELL_SCRIPTS       := $(wildcard scripts/*.sh)
@@ -7,6 +7,7 @@ MARKDOWN_FILES      := $(shell git ls-files --cached --others --exclude-standard
 
 AGENTS              := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(DOCKERFILES)))
 AGENT_BUILD_TARGETS := $(addprefix build-,$(AGENTS))
+AGENT_TEST_TARGETS  := $(addprefix test-,$(AGENTS))
 
 HADOLINT_ARGS       := --ignore DL3008 --ignore DL3016
 
@@ -56,8 +57,7 @@ lint: sh-lint docker-lint md-lint ## 🔍 Lint shell scripts and Dockerfiles
 
 format: sh-format docker-format ## 🎨 Format shell scripts and validate Dockerfiles
 
-test: ## 🧪 Run test suite
-	@echo "No tests defined."
+test: test-base $(AGENT_TEST_TARGETS) ## 🧪 Run test suite
 
 qa: lint format test ## ✅ Run all quality assurance checks
 
@@ -115,11 +115,21 @@ docker-format: ## 🎨 Format/check Dockerfiles
 	@echo "No dedicated Dockerfile formatter configured; syntax validated by lint."
 
 # ----------------------------------------------------------
+# Test targets
+# ----------------------------------------------------------
+.PHONY: $(AGENT_TEST_TARGETS)
+test-base: ## 📦 Test the base Docker image
+	$(MAKE) -C base test IMAGE_VERSION="$(IMAGE_VERSION)"
+
+$(AGENT_TEST_TARGETS): test-%: ## 📦 Test a specific agent Docker image
+	$(MAKE) -C "$*" test IMAGE_VERSION="$(IMAGE_VERSION)"
+
+# ----------------------------------------------------------
 # Build targets
 # ----------------------------------------------------------
 .PHONY: $(AGENT_BUILD_TARGETS)
 build-base: ## 📦 Build the base Docker image
-	$(MAKE) -C base build VERSION="$(VERSION)"
+	$(MAKE) -C base build IMAGE_VERSION="$(IMAGE_VERSION)"
 
 $(AGENT_BUILD_TARGETS): build-%: build-base ## 📦 Build a specific agent Docker image
-	$(MAKE) -C "$*" build VERSION="$(VERSION)"
+	$(MAKE) -C "$*" build IMAGE_VERSION="$(IMAGE_VERSION)"
