@@ -14,6 +14,9 @@ AGENTS              := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(
 AGENT_BUILD_TARGETS := $(addprefix build-,$(AGENTS))
 AGENT_TEST_TARGETS  := $(addprefix test-,$(AGENTS))
 
+ACTIONS             := $(shell act --list 2> /dev/null | awk '/^[0-9]/ {print $$2}')
+ACTION_TARGETS      := $(addprefix action-,$(ACTIONS))
+
 # ----------------------------------------------------------
 # QA tools used during CI
 # ----------------------------------------------------------
@@ -137,3 +140,23 @@ build-base: ## 📦 Build the base Docker image
 
 $(AGENT_BUILD_TARGETS): build-%: build-base ## 📦 Build a specific agent Docker image
 	$(MAKE) -C "$*" build IMAGE_VERSION="$(IMAGE_VERSION)"
+
+# ----------------------------------------------------------
+# Test GitHub Actions
+# ----------------------------------------------------------
+
+ACT_IMAGE ?= ubuntu-latest=catthehacker/ubuntu:act-latest
+ACT_ARGS  := -P $(ACT_IMAGE)
+ACT_ARGS  += --actor 'jzer7/agent-images'
+ACT_ARGS  += --defaultbranch main
+ACT_ARGS  += --use-gitignore
+ifeq ($(shell uname -m),arm64)
+ACT_ARGS  += --container-architecture linux/arm64
+endif
+
+actions: ## 📦 List GitHub Action workflows (run with `make action-NAME`)
+	@echo "Actions: $(ACTIONS)"
+
+.PHONY: $(ACTION_TARGETS)
+$(ACTION_TARGETS): action-%: ## 📦 Run a specific GitHub Action workflow using 'act'
+	act -j $* $(ACT_ARGS)
