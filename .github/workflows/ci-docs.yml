@@ -3,12 +3,18 @@ name: CI Docs
 on:
   push:
     paths:
-      - '**/*.md'
       - '.github/workflows/ci-docs.yml'
+      - '.tool-versions'
+      - '**/*.md'
+      - 'Makefile'
+      - 'rules/**'
   pull_request:
     paths:
-      - '**/*.md'
       - '.github/workflows/ci-docs.yml'
+      - '.tool-versions'
+      - '**/*.md'
+      - 'Makefile'
+      - 'rules/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,7 +24,7 @@ permissions:
   contents: read
 
 jobs:
-  markdown:
+  markdown-qa:
     name: Markdown QA
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -32,5 +38,14 @@ jobs:
         with:
           node-version: 'lts/*'
 
+      - name: Install pinned QA tools
+        run: |
+          make install-tools-docs
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Lint markdown files
         run: make md-lint
+
+      - name: Verify files are properly formatted
+        run: |
+          make md-format-check
