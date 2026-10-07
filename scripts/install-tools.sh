@@ -189,20 +189,22 @@ install_hadolint() {
 install_prettier() {
     local version="$1"
     local prefix_dir
+
+    ensure_tool_dir
     prefix_dir="$(cd "${TOOLS_BIN_DIR}/.." && pwd)"
 
     echo "==> Installing prettier v${version} via npm into ${prefix_dir}"
-    ensure_tool_dir
     npm install -g --prefix "${prefix_dir}" "prettier@${version}"
 }
 
 install_markdownlint() {
     local version="$1"
     local prefix_dir
+
+    ensure_tool_dir
     prefix_dir="$(cd "${TOOLS_BIN_DIR}/.." && pwd)"
 
     echo "==> Installing markdownlint-cli2 v${version} via npm into ${prefix_dir}"
-    ensure_tool_dir
     npm install -g --prefix "${prefix_dir}" "markdownlint-cli2@${version}"
 }
 
