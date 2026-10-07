@@ -108,5 +108,5 @@ jobs:
         env:
           BUILDX_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-${{ matrix.target }} --cache-from=type=gha,scope=buildx-base --cache-to=type=gha,scope=buildx-${{ matrix.target }},mode=max"
         run: |
-          make build-base
-          make test-${{ matrix.target }}
+          make build-base IMAGE_NAME=base-local
+          make test-${{ matrix.target }} BASE_IMAGE=base-local
