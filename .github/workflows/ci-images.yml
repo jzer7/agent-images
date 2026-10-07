@@ -87,5 +87,5 @@ jobs:
 
       - name: Run tests
         env:
-          BUILD_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-${{ matrix.target }} --cache-from=type=gha,scope=buildx-base --cache-to=type=gha,scope=buildx-${{ matrix.target }},mode=max"
+          BUILDX_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-${{ matrix.target }} --cache-from=type=gha,scope=buildx-base --cache-to=type=gha,scope=buildx-${{ matrix.target }},mode=max"
         run: make test-${{ matrix.target }}

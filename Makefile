@@ -5,17 +5,17 @@ include $(TOP)/rules/tools.mk
 
 IMAGE_VERSION       ?= latest
 
-FETCH_SCRIPT        := scripts/fetch-asset.sh
-SHELL_SCRIPTS       := $(wildcard scripts/*.sh)
-DOCKERFILES         := $(wildcard */Dockerfile)
-MARKDOWN_FILES      := $(shell git ls-files --cached --others --exclude-standard -- '*.md')
+ACTIONS             := $(shell act --list 2> /dev/null | awk '/^[0-9]/ {print $$2}')
+ACTION_TARGETS      := $(addprefix action-,$(ACTIONS))
 
 AGENTS              := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(DOCKERFILES)))
 AGENT_BUILD_TARGETS := $(addprefix build-,$(AGENTS))
 AGENT_TEST_TARGETS  := $(addprefix test-,$(AGENTS))
 
-ACTIONS             := $(shell act --list 2> /dev/null | awk '/^[0-9]/ {print $$2}')
-ACTION_TARGETS      := $(addprefix action-,$(ACTIONS))
+FETCH_SCRIPT        := scripts/fetch-asset.sh
+SHELL_SCRIPTS       := $(filter-out assets/%,$(wildcard *.sh */*.sh))
+DOCKERFILES         := $(wildcard */Dockerfile)
+MARKDOWN_FILES      := $(shell git ls-files --cached --others --exclude-standard -- '*.md')
 
 # ----------------------------------------------------------
 # QA tools used during CI
@@ -30,7 +30,7 @@ HADOLINT_ARGS       := --ignore DL3008 --ignore DL3016
 .PHONY: all lint format-check format-fix test qa build clean distclean
 all: qa build
 
-lint: sh-lint docker-lint ## 🔍 Lint shell scripts and Dockerfiles
+lint: sh-lint docker-lint ## ⚠️ Lint shell scripts and Dockerfiles
 
 format-check: sh-format-check docker-format-check ## 🎨 Check format of shell scripts and validate Dockerfiles
 
@@ -43,9 +43,9 @@ qa: lint format-check test ## ✅ Run all quality assurance checks
 build: fetch-scripts build-base $(AGENT_BUILD_TARGETS) ## 📦 Build all Docker images
 
 clean: ## 🧹 Clean transient and temporary files
-	rm -rf .tmp */*.tmp.*
+	rm -rf .tmp */*.tmp.* $(BUILDX_CACHE_DIR)
 
-distclean: clean ## 🧼 Clean all generated files and built Docker images
+distclean: clean ## 🧹 Clean all generated files and built Docker images
 	-docker rmi $(BASE_IMAGE) $(CLAUDE_IMAGE) $(CODEX_IMAGE) $(HERMES_IMAGE) $(KILO_IMAGE) $(OPENCLAW_IMAGE) $(PI_IMAGE) 2>/dev/null || true
 
 # ----------------------------------------------------------
@@ -74,21 +74,21 @@ install-tools-docs: ## 🛠️ Install pinned tools for documentation
 # Lint targets
 # ----------------------------------------------------------
 .PHONY: sh-lint
-sh-lint: ## 🔍 Lint shell scripts with shellcheck
+sh-lint: ## ⚠️ Lint shell scripts with shellcheck
 	@for sf in $(SHELL_SCRIPTS); do \
 		echo "==> Linting $$sf"; \
 		$(SHELLCHECK_CMD) "$$sf"; \
 	done
 
 .PHONY: docker-lint
-docker-lint: ## 🔍 Lint Dockerfiles with hadolint
+docker-lint: ## ⚠️ Lint Dockerfiles with hadolint
 	@for df in $(DOCKERFILES); do \
 		echo "==> Linting $$df"; \
 		$(HADOLINT_CMD) $(HADOLINT_ARGS) - < "$$df" || exit 1; \
 	done
 
 .PHONY: md-lint
-md-lint: ## 🔍 Lint Markdown files with markdownlint-cli2
+md-lint: ## ⚠️ Lint Markdown files with markdownlint-cli2
 	@echo "==> Linting $(MARKDOWN_FILES)"
 	$(MARKDOWNLINT_CMD) $(MARKDOWN_FILES)
 
@@ -97,7 +97,7 @@ md-lint: ## 🔍 Lint Markdown files with markdownlint-cli2
 # ----------------------------------------------------------
 
 .PHONY: sh-format-check sh-format-fix
-sh-format-check: ## 🎨 Format shell scripts with shfmt
+sh-format-check: ## 🎨 Check format of shell scripts with shfmt
 	@echo "==> Checking format of $(SHELL_SCRIPTS)"
 	$(SHFMT_CMD) -d $(SHELL_SCRIPTS)
 
@@ -106,18 +106,18 @@ sh-format-fix: ## 🎨 Format shell scripts with shfmt
 	$(SHFMT_CMD) -w $(SHELL_SCRIPTS)
 
 .PHONY: docker-format-check docker-format-fix
-docker-format-check: ## 🎨 Format/check Dockerfiles
+docker-format-check: ## 🎨 Check format of Dockerfiles (TBD)
 	@echo "No dedicated Dockerfile formatter configured; syntax validated by lint."
 
-docker-format-fix: ## 🎨 Format/check Dockerfiles
+docker-format-fix: ## 🎨 Format Dockerfiles (TBD)
 	@echo "No dedicated Dockerfile formatter configured; syntax validated by lint."
 
 .PHONY: md-format-check md-format-fix
-md-format-check: ## 🔍 Check format of Markdown files with prettier
+md-format-check: ## 🎨 Check format of Markdown files with prettier
 	@echo "==> Checking format of $(MARKDOWN_FILES)"
 	$(PRETTIER_CMD) --check $(MARKDOWN_FILES)
 
-md-format-fix: ## 🔍 Format Markdown files with prettier
+md-format-fix: ## 🎨 Format Markdown files with prettier
 	@echo "==> Formatting $(MARKDOWN_FILES)"
 	$(PRETTIER_CMD) --write $(MARKDOWN_FILES)
 
@@ -125,10 +125,10 @@ md-format-fix: ## 🔍 Format Markdown files with prettier
 # Test targets
 # ----------------------------------------------------------
 .PHONY: $(AGENT_TEST_TARGETS)
-test-base: ## 📦 Test the base Docker image
+test-base: ## 🧪 Test the base Docker image
 	$(MAKE) -C base test IMAGE_VERSION="$(IMAGE_VERSION)"
 
-$(AGENT_TEST_TARGETS): test-%: ## 📦 Test a specific agent Docker image
+$(AGENT_TEST_TARGETS): test-%: ## 🧪 Test a specific agent Docker image
 	$(MAKE) -C "$*" test IMAGE_VERSION="$(IMAGE_VERSION)"
 
 # ----------------------------------------------------------
@@ -154,9 +154,9 @@ ifeq ($(shell uname -m),arm64)
 ACT_ARGS  += --container-architecture linux/arm64
 endif
 
-actions: ## 📦 List GitHub Action workflows (run with `make action-NAME`)
+actions: ## 🎬 List GitHub Action workflows (run with `make action-NAME`)
 	@echo "Actions: $(ACTIONS)"
 
 .PHONY: $(ACTION_TARGETS)
-$(ACTION_TARGETS): action-%: ## 📦 Run a specific GitHub Action workflow using 'act'
+$(ACTION_TARGETS): action-%: ## 🎬 Run a specific GitHub Action workflow using 'act'
 	act -j $* $(ACT_ARGS)

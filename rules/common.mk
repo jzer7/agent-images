@@ -1,5 +1,8 @@
 # ----------------------------------------------------------
-BUILD_EXTRA_ARGS ?=
+BUILDX_CACHE_DIR ?= $(TOP)/.cache/buildx
+ifeq ($(origin BUILDX_EXTRA_ARGS),undefined)
+  BUILDX_EXTRA_ARGS := --cache-from=type=local,src=$(BUILDX_CACHE_DIR) --cache-to=type=local,dest=$(BUILDX_CACHE_DIR),mode=max
+endif
 
 # ----------------------------------------------------------
 # Checks if LINES has **all** these PATTERNS.
