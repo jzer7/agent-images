@@ -52,17 +52,17 @@ test: test-uv-help test-uv-version ## 🧪 Run tests
 .PHONY: test-uv-help
 test-uv-help: build
 	@echo "=== Starting test (uv-help) of image $(IMAGE_NAME)"
-	ifeq ($(_DRYRUN),)
+ifeq ($(_DRYRUN),)
 	@output=$$(docker run --rm $(IMAGE_NAME) uv --help) && \
 	$(call check_for_all_patterns,$(TEST_HELP_PATTERNS),$$output)
-	endif
+endif
 	@echo "=== Completed test (uv-help) of image $(IMAGE_NAME)"
 
 .PHONY: test-uv-version
 test-uv-version: build
 	@echo "=== Starting test (uv-version) of image $(IMAGE_NAME)"
-	ifeq ($(_DRYRUN),)
+ifeq ($(_DRYRUN),)
 	@output=$$(docker run --rm $(IMAGE_NAME) uv --version) && \
 	$(call check_for_all_patterns,$(TEST_VERSION_PATTERNS),$$output)
-	endif
+endif
 	@echo "=== Completed test (uv-version) of image $(IMAGE_NAME)"

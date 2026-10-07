@@ -5,17 +5,17 @@ include $(TOP)/rules/tools.mk
 
 IMAGE_VERSION       ?= latest
 
-ACTIONS             := $(shell act --list 2> /dev/null | awk '/^[0-9]/ {print $$2}')
-ACTION_TARGETS      := $(addprefix action-,$(ACTIONS))
+FETCH_SCRIPT        := scripts/fetch-asset.sh
+SHELL_SCRIPTS       := $(filter-out assets/%,$(wildcard *.sh */*.sh))
+DOCKERFILES         := $(wildcard */Dockerfile)
+MARKDOWN_FILES      := $(shell git ls-files --cached --others --exclude-standard -- '*.md')
 
 AGENTS              := $(patsubst %/Dockerfile,%,$(filter-out base/Dockerfile,$(DOCKERFILES)))
 AGENT_BUILD_TARGETS := $(addprefix build-,$(AGENTS))
 AGENT_TEST_TARGETS  := $(addprefix test-,$(AGENTS))
 
-FETCH_SCRIPT        := scripts/fetch-asset.sh
-SHELL_SCRIPTS       := $(filter-out assets/%,$(wildcard *.sh */*.sh))
-DOCKERFILES         := $(wildcard */Dockerfile)
-MARKDOWN_FILES      := $(shell git ls-files --cached --others --exclude-standard -- '*.md')
+ACTIONS             := $(shell act --list 2> /dev/null | awk '/^[0-9]/ {print $$2}')
+ACTION_TARGETS      := $(addprefix action-,$(ACTIONS))
 
 # ----------------------------------------------------------
 # QA tools used during CI
