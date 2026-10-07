@@ -15,12 +15,14 @@ RUN <<EOT
         ca-certificates \
         curl \
         fd-find \
+        file \
         git \
         make \
         procps \
         ripgrep \
         unzip \
-        wget
+        wget \
+        xz-utils
     apt-get clean
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 EOT
