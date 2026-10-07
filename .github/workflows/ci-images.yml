@@ -73,6 +73,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [image-qa]
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
 
     steps:
       - name: Check out repository
@@ -83,7 +86,7 @@ jobs:
 
       - name: Run tests
         env:
-          BUILDX_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-base --cache-to=type=gha,scope=buildx-base,mode=max"
+          BUILDX_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-base,repository=${{ github.repository }},ghtoken=${{ secrets.GITHUB_TOKEN }} --cache-to=type=gha,scope=buildx-base,repository=${{ github.repository }},ghtoken=${{ secrets.GITHUB_TOKEN }},mode=max"
         run: make test-base
 
   image-test:
@@ -91,6 +94,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [discover-targets, image-test-base]
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -106,7 +112,7 @@ jobs:
       # We build locally using the gha cache. This way, we do not need to mock with permissions for images built by a different worker
       - name: Run tests
         env:
-          BUILDX_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-${{ matrix.target }} --cache-from=type=gha,scope=buildx-base --cache-to=type=gha,scope=buildx-${{ matrix.target }},mode=max"
+          BUILDX_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-${{ matrix.target }},repository=${{ github.repository }},ghtoken=${{ secrets.GITHUB_TOKEN }} --cache-from=type=gha,scope=buildx-base,repository=${{ github.repository }},ghtoken=${{ secrets.GITHUB_TOKEN }} --cache-to=type=gha,scope=buildx-${{ matrix.target }},repository=${{ github.repository }},ghtoken=${{ secrets.GITHUB_TOKEN }},mode=max"
         run: |
-          make build-base IMAGE_NAME=base-local
-          make test-${{ matrix.target }} BASE_IMAGE=base-local
+          make build-base
+          make test-${{ matrix.target }}
