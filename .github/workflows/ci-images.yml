@@ -103,7 +103,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # https://github.com/docker/setup-buildx-action/releases/tag/v4.4.1
 
+      # We build locally using the gha cache. This way, we do not need to mock with permissions for images built by a different worker
       - name: Run tests
         env:
           BUILDX_EXTRA_ARGS: "--cache-from=type=gha,scope=buildx-${{ matrix.target }} --cache-from=type=gha,scope=buildx-base --cache-to=type=gha,scope=buildx-${{ matrix.target }},mode=max"
-        run: make test-${{ matrix.target }}
+        run: |
+          make build-base
+          make test-${{ matrix.target }}
