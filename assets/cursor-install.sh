@@ -75,14 +75,14 @@ print_success "Detected ${OS}/${ARCH}"
 # Installation steps
 print_step "Creating installation directory..."
 # Create temporary directory for atomic download inside versions folder
-TEMP_EXTRACT_DIR="$HOME/.local/share/cursor-agent/versions/.tmp-2026.10.01-e373342-$(date +%s)"
+TEMP_EXTRACT_DIR="$HOME/.local/share/cursor-agent/versions/.tmp-2026.11.05-86047df-$(date +%s)"
 mkdir -p "${TEMP_EXTRACT_DIR}"
 
 print_success "Directory created"
 
 
 print_step "Downloading Cursor Agent package..."
-DOWNLOAD_URL="https://downloads.cursor.com/lab/2026.10.01-e373342/${OS}/${ARCH}/agent-cli-package.tar.gz"
+DOWNLOAD_URL="https://downloads.cursor.com/lab/2026.11.05-86047df/${OS}/${ARCH}/agent-cli-package.tar.gz"
 echo -e "${DIM}  Download URL: ${DOWNLOAD_URL}${NC}"
 
 # Cleanup function
@@ -107,7 +107,7 @@ fi
 
 print_step "Finalizing installation..."
 # Atomically move from temp to final destination
-FINAL_DIR="$HOME/.local/share/cursor-agent/versions/2026.10.01-e373342"
+FINAL_DIR="$HOME/.local/share/cursor-agent/versions/2026.11.05-86047df"
 command rm -rf "${FINAL_DIR}"
 if mv "${TEMP_EXTRACT_DIR}" "${FINAL_DIR}"; then
   print_success "Package installed successfully"
@@ -127,9 +127,23 @@ print_step "Creating symlinks to agent executable..."
 # Remove any existing symlink or file
 command rm -f ~/.local/bin/agent ~/.local/bin/cursor-agent
 # Create symlinks to the Cursor Agent executable (primary: agent, legacy: cursor-agent)
-ln -s ~/.local/share/cursor-agent/versions/2026.10.01-e373342/cursor-agent ~/.local/bin/agent
-ln -s ~/.local/share/cursor-agent/versions/2026.10.01-e373342/cursor-agent ~/.local/bin/cursor-agent
+ln -s ~/.local/share/cursor-agent/versions/2026.11.05-86047df/cursor-agent ~/.local/bin/agent
+ln -s ~/.local/share/cursor-agent/versions/2026.11.05-86047df/cursor-agent ~/.local/bin/cursor-agent
 print_success "Symlink created"
+
+if [ -n "${CURSOR_CONFIG_DIR//[[:space:]]/}" ]; then
+  AGENT_HOST_SWITCH_RECORD="${CURSOR_CONFIG_DIR}/grok-switch.json"
+elif [ -n "${XDG_CONFIG_HOME//[[:space:]]/}" ]; then
+  AGENT_HOST_SWITCH_RECORD="${XDG_CONFIG_HOME}/cursor/grok-switch.json"
+else
+  AGENT_HOST_SWITCH_RECORD="${HOME}/.cursor/grok-switch.json"
+fi
+if [ -e "${AGENT_HOST_SWITCH_RECORD}" ] || [ -L "${AGENT_HOST_SWITCH_RECORD}" ]; then
+  "${HOME}/.local/bin/cursor-agent" --version >/dev/null || true
+  if [ -e "${AGENT_HOST_SWITCH_RECORD}" ] || [ -L "${AGENT_HOST_SWITCH_RECORD}" ]; then
+    echo -e "${DIM}  The next cursor-agent start finishes ending the switch to Grok agent host.${NC}"
+  fi
+fi
 
 # Success message
 echo ""

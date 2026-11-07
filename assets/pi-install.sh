@@ -847,7 +847,7 @@ managed_install_marker_is_valid() {
 
   node - "$marker_path" <<'NODE' >/dev/null 2>&1
 const fs = require("node:fs");
-const marker = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const marker = JSON.parse(fs.readFileSync(process.argv[2], "utf8").replace(/^\uFEFF/, ""));
 if (
 	marker.kind !== "pi-managed-install" ||
 	marker.schemaVersion !== 1 ||
@@ -1124,7 +1124,7 @@ managed_install_entrypoint_path() {
 
   node - "$managed_root/$PI_MANAGED_INSTALL_MARKER" <<'NODE'
 const fs = require("node:fs");
-const marker = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const marker = JSON.parse(fs.readFileSync(process.argv[2], "utf8").replace(/^\uFEFF/, ""));
 if (typeof marker.entrypoint?.path !== "string" || !marker.entrypoint.path) process.exit(1);
 console.log(marker.entrypoint.path);
 NODE
