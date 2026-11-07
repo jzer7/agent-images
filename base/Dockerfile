@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=node:26-trixie-slim
+ARG BASE_IMAGE=node:26.13.0-trixie-slim
 FROM ${BASE_IMAGE}
 
 ENV LANG=C.UTF-8 \

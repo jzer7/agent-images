@@ -1,12 +1,12 @@
 # Pinned versions of development tools
 #
-# https://github.com/hadolint/hadolint
+# https://github.com/hadolint/hadolint/releases
 HADOLINT_VERSION=2.15.1
-# https://github.com/DavidAnson/markdownlint-cli2
-MARKDOWNLINT_VERSION=0.22.1
-# https://github.com/prettier/prettier
-PRETTIER_VERSION=3.9.9
-# https://github.com/koalaman/shellcheck
+# https://github.com/DavidAnson/markdownlint-cli2/tags
+MARKDOWNLINT_VERSION=0.24.0
+# https://github.com/prettier/prettier/releases
+PRETTIER_VERSION=3.9.10
+# https://github.com/koalaman/shellcheck/releases
 SHELLCHECK_VERSION=0.11.0
-# https://github.com/mvdan/sh
+# https://github.com/mvdan/sh/releases
 SHFMT_VERSION=3.14.1
