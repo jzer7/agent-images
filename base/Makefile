@@ -12,7 +12,7 @@ endif
 # ----------------------------------------------------------
 
 IMAGE_VERSION ?= latest
-BASE_IMAGE    ?= node:26-trixie-slim
+BASE_IMAGE    ?= node:26.13.0-trixie-slim
 IMAGE_TAG     ?= $(CUR_DIR)-$(IMAGE_VERSION)
 IMAGE_NAME    := jzer7/agent:$(IMAGE_TAG)
 
